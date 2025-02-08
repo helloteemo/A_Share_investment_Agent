@@ -52,4 +52,6 @@ venv/
 ENV/ 
 
 # Reference directory
-reference/ 
+reference/
+logs
+src/data

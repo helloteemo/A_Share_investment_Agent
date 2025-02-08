@@ -15,7 +15,8 @@ import pandas as pd
 
 
 ##### Run the Hedge Fund #####
-def run_hedge_fund(ticker: str, start_date: str, end_date: str, portfolio: dict, show_reasoning: bool = False, num_of_news: int = 5):
+def run_hedge_fund(ticker: str, start_date: str, end_date: str, portfolio: dict, show_reasoning: bool = False,
+                   num_of_news: int = 5):
     final_state = app.invoke(
         {
             "messages": [
@@ -134,7 +135,7 @@ def get_historical_data(symbol: str) -> pd.DataFrame:
     yesterday = current_date - timedelta(days=1)
     end_date = yesterday  # Use yesterday as end date
     target_start_date = yesterday - \
-        timedelta(days=365)  # Target: 1 year of data
+                        timedelta(days=365)  # Target: 1 year of data
 
     print(f"\n正在获取 {symbol} 的历史行情数据...")
     print(f"目标开始日期：{target_start_date.strftime('%Y-%m-%d')}")

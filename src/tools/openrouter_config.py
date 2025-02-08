@@ -1,7 +1,8 @@
 import os
 import time
 import logging
-from google import genai
+
+import openai
 from dotenv import load_dotenv
 from dataclasses import dataclass
 import backoff
@@ -82,19 +83,23 @@ else:
     logger.warning(f"{ERROR_ICON} 未找到环境变量文件: {env_path}")
 
 # 验证环境变量
-api_key = os.getenv("GEMINI_API_KEY")
-model = os.getenv("GEMINI_MODEL")
+api_key = os.getenv("OPENAI_API_KEY")
+model = os.getenv("OPENAI_MODEL")
+base_url = os.getenv("OPENAI_BASE_URL")
 
 if not api_key:
-    logger.error(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量")
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+    logger.error(f"{ERROR_ICON} 未找到 OPENAI_API_KEY 环境变量")
+    raise ValueError("OPENAI_API_KEY not found in environment variables")
 if not model:
-    model = "gemini-1.5-flash"
+    model = "gpt-4o"
     logger.info(f"{WAIT_ICON} 使用默认模型: {model}")
+if not base_url:
+    base_url = "https://api.openai.com/v1"
+    logger.info(f"{WAIT_ICON} 使用默认URL: {base_url}")
 
-# 初始化 Gemini 客户端
-client = genai.Client(api_key=api_key)
-logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
+# 初始化 OPENAI 客户端
+client = openai.OpenAI(base_url=base_url, api_key=api_key)
+logger.info(f"{SUCCESS_ICON} OPENAI 客户端初始化成功")
 
 
 @backoff.on_exception(
@@ -104,23 +109,21 @@ logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
     max_time=300,
     giveup=lambda e: "AFC is enabled" not in str(e)
 )
-def generate_content_with_retry(model, contents, config=None):
+def generate_content_with_retry(model, contents):
     """带重试机制的内容生成函数"""
     try:
-        logger.info(f"{WAIT_ICON} 正在调用 Gemini API...")
+        logger.info(f"{WAIT_ICON} 正在调用 OPENAI API...")
         logger.info(f"请求内容: {contents[:500]}..." if len(
             str(contents)) > 500 else f"请求内容: {contents}")
-        logger.info(f"请求配置: {config}")
 
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=model,
-            contents=contents,
-            config=config
+            messages=contents,
+            temperature=0.6,
+
         )
 
-        logger.info(f"{SUCCESS_ICON} API 调用成功")
-        logger.info(f"响应内容: {response.text[:500]}..." if len(
-            str(response.text)) > 500 else f"响应内容: {response.text}")
+        logger.info(f"{SUCCESS_ICON} API 调用成功 {response}")
         return response
     except Exception as e:
         if "AFC is enabled" in str(e):
@@ -132,41 +135,18 @@ def generate_content_with_retry(model, contents, config=None):
         raise e
 
 
-def get_chat_completion(messages, model=None, max_retries=3, initial_retry_delay=1):
+def get_chat_completion(messages, max_retries=3, initial_retry_delay=1):
     """获取聊天完成结果，包含重试逻辑"""
     try:
-        if model is None:
-            model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-
         logger.info(f"{WAIT_ICON} 使用模型: {model}")
         logger.debug(f"消息内容: {messages}")
 
         for attempt in range(max_retries):
             try:
-                # 转换消息格式
-                prompt = ""
-                system_instruction = None
-
-                for message in messages:
-                    role = message["role"]
-                    content = message["content"]
-                    if role == "system":
-                        system_instruction = content
-                    elif role == "user":
-                        prompt += f"User: {content}\n"
-                    elif role == "assistant":
-                        prompt += f"Assistant: {content}\n"
-
-                # 准备配置
-                config = {}
-                if system_instruction:
-                    config['system_instruction'] = system_instruction
-
                 # 调用 API
                 response = generate_content_with_retry(
                     model=model,
-                    contents=prompt.strip(),
-                    config=config
+                    contents=messages,
                 )
 
                 if response is None:
@@ -180,11 +160,9 @@ def get_chat_completion(messages, model=None, max_retries=3, initial_retry_delay
                     return None
 
                 # 转换响应格式
-                chat_message = ChatMessage(content=response.text)
-                chat_choice = ChatChoice(message=chat_message)
-                completion = ChatCompletion(choices=[chat_choice])
+                completion = response
 
-                logger.debug(f"API 原始响应: {response.text}")
+                logger.debug(f"API 原始响应: {response}")
                 logger.info(f"{SUCCESS_ICON} 成功获取响应")
                 return completion.choices[0].message.content
 

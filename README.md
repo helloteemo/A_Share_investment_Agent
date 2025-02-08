@@ -18,6 +18,14 @@
 
 注意：系统仅模拟交易决策，不进行实际交易。
 
+## ChangeLog
+
+1. 将Gemini模型改为OpenAI，更好的兼容性
+
+## TODO
+
+-[ ] 推理过程、结果入库
+
 ## 免责声明
 
 本项目仅用于**教育和研究目的**。
@@ -74,8 +82,6 @@ poetry install
 ```bash
 # Create .env file for your API keys
 cp .env.example .env
-
-# Get your Gemini API key from https://aistudio.google.com/
 ```
 
 你可以通过以下两种方式设置环境变量:
@@ -84,8 +90,9 @@ cp .env.example .env
    打开 .env 文件,填入你的 API key:
 
 ```
-GEMINI_API_KEY=your-gemini-api-key-here
-GEMINI_MODEL=gemini-1.5-flash
+OPENAI_API_KEY=sk-***
+OPENAI_MODEL=deepseek-ai/DeepSeek-V3
+OPENAI_BASE_URL=https://api.siliconflow.cn
 ```
 
 2. **通过命令行设置**
@@ -93,15 +100,17 @@ GEMINI_MODEL=gemini-1.5-flash
 Unix/macOS:
 
 ```bash
-export GEMINI_API_KEY='your-gemini-api-key-here'
-export GEMINI_MODEL='gemini-1.5-flash'
+export OPENAI_API_KEY='your-open-api-key-here'
+export OPENAI_MODEL='deepseek-ai/DeepSeek-V3'
+export OPENAI_BASE_URL='https://api.siliconflow.cn'
 ```
 
 Windows PowerShell:
 
 ```powershell
-$env:GEMINI_API_KEY='your-gemini-api-key-here'
-$env:GEMINI_MODEL='gemini-1.5-flash'
+$env:OPENAI_API_KEY='your-gemini-api-key-here'
+$env:OPENAI_MODEL='deepseek-ai/DeepSeek-V3'
+$env:OPENAI_BASE_URL='https://api.siliconflow.cn'
 ```
 
 注意: 推荐使用第一种方式(修改 .env 文件)。
